@@ -1,0 +1,6 @@
+{
+  "name": "Smart AC Service Management System",
+  "description": "A comprehensive AC service management platform with dedicated Customer, Service Provider, and Admin portals, dynamic model-to-service mapping, GPS location capture, technician job dispatching, and automated invoicing.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
