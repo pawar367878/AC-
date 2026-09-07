@@ -19,6 +19,21 @@ interface AuthContextType {
     latitude?: number | null;
     longitude?: number | null;
   }) => Promise<boolean>;
+  registerTechnician: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    address?: string;
+    services_provided?: string[];
+  }) => Promise<boolean>;
+  registerOwner: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    address?: string;
+  }) => Promise<boolean>;
   logout: () => void;
   switchUserByEmail: (email: string) => Promise<boolean>;
   notifications: AppNotification[];
@@ -147,6 +162,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const registerTechnician = async (data: {
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    address?: string;
+    services_provided?: string[];
+  }): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const res = await api.registerTechnician(data);
+      if (res.success) {
+        setUser(res.user);
+        setTechnician(res.technician);
+        setCustomer(null);
+        localStorage.setItem('smartac_user_identifier', res.user.email);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Technician registration failed:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const registerOwner = async (data: {
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    address?: string;
+  }): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const res = await api.registerOwner(data);
+      if (res.success) {
+        setUser(res.user);
+        setTechnician(null);
+        setCustomer(null);
+        localStorage.setItem('smartac_user_identifier', res.user.email);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Owner registration failed:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = useCallback(() => {
     setUser(null);
     setCustomer(null);
@@ -180,6 +248,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         loginCustomerDemo,
         registerCustomer,
+        registerTechnician,
+        registerOwner,
         logout,
         switchUserByEmail,
         notifications,

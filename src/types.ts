@@ -6,7 +6,8 @@ export type RequestStatus =
   | 'ACCEPTED' 
   | 'IN PROGRESS' 
   | 'COMPLETED' 
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'REJECTED';
 
 export interface User {
   id: string;
@@ -14,6 +15,8 @@ export interface User {
   role: UserRole;
   name: string;
   phone: string;
+  password?: string;
+  address?: string;
   created_at: string;
 }
 
@@ -37,6 +40,7 @@ export interface ServiceProvider {
   email: string;
   skills: string[];
   service_areas: string[];
+  address?: string;
   availability: 'AVAILABLE' | 'BUSY' | 'ON_LEAVE' | 'OFFLINE';
   is_available?: boolean;
   jobs_completed_count?: number;
@@ -205,6 +209,8 @@ export interface ServiceRequest {
   problem_description: string;
   status: RequestStatus;
   assigned_technician_id: string | null;
+  assigned_at?: string | null;
+  technician_response?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | null;
   created_at: string;
   updated_at: string;
   // Hydrated relational fields for UI

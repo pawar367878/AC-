@@ -33,6 +33,7 @@ import {
   CheckCircle,
   Award,
   Zap,
+  X,
 } from 'lucide-react';
 
 export const TechnicianDashboard: React.FC = () => {
@@ -75,6 +76,31 @@ export const TechnicianDashboard: React.FC = () => {
 
   // Invoice modal
   const [viewInvoice, setViewInvoice] = useState<any>(null);
+
+  // Rejection modal
+  const [rejectingRequest, setRejectingRequest] = useState<ServiceRequest | null>(null);
+  const [rejectReason, setRejectReason] = useState('Schedule conflict / already on another job');
+  const [customRejectReason, setCustomRejectReason] = useState('');
+  const [isSubmittingReject, setIsSubmittingReject] = useState(false);
+
+  const handleRejectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingRequest) return;
+    const finalReason = rejectReason === 'Other' ? customRejectReason || 'Technician unavailable' : rejectReason;
+    try {
+      setIsSubmittingReject(true);
+      const res = await api.technicianReject(rejectingRequest.id, finalReason, user?.id, user?.name);
+      if (res.success) {
+        setRejectingRequest(null);
+        setCustomRejectReason('');
+        await fetchTechnicianData();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to decline request');
+    } finally {
+      setIsSubmittingReject(false);
+    }
+  };
 
   const fetchTechnicianData = async () => {
     try {
@@ -256,12 +282,20 @@ export const TechnicianDashboard: React.FC = () => {
           <div className="flex items-center gap-2">
             {/* ACTION WORKFLOW BUTTONS */}
             {job.status === 'ASSIGNED' && (
-              <button
-                onClick={() => handleAccept(job.id)}
-                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/20 flex items-center gap-1.5 transition"
-              >
-                <Check className="w-4 h-4" /> Accept Service Request
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleAccept(job.id)}
+                  className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/20 flex items-center gap-1.5 transition"
+                >
+                  <Check className="w-4 h-4" /> Accept Job
+                </button>
+                <button
+                  onClick={() => setRejectingRequest(job)}
+                  className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                >
+                  <X className="w-4 h-4" /> Decline
+                </button>
+              </div>
             )}
 
             {job.status === 'ACCEPTED' && (
@@ -818,6 +852,7 @@ export const TechnicianDashboard: React.FC = () => {
         )}
 
         {/* COMPLETION MODAL */}
+        {/* Completion Modal */}
         {completingRequest && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto">
             <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6">
@@ -978,6 +1013,93 @@ export const TechnicianDashboard: React.FC = () => {
                     className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
                   >
                     {isSubmittingCompletion ? 'Finalizing Invoice...' : 'Complete Service & Auto-Generate Invoice'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* REJECTION MODAL */}
+        {rejectingRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6">
+              <div className="p-6 bg-rose-900 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-800/80 flex items-center justify-center text-rose-200">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base">Decline Service Request</h3>
+                    <p className="text-xs text-rose-200">Request #{rejectingRequest.id}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setRejectingRequest(null)}
+                  className="p-1.5 rounded-lg text-rose-200 hover:text-white hover:bg-rose-800 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleRejectSubmit} className="p-6 space-y-4">
+                <p className="text-xs text-slate-600">
+                  Please specify why you cannot take this job. The service administrator will be notified immediately so they can reassign the customer to another qualified technician.
+                </p>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">Select Reason:</label>
+                  {[
+                    'Schedule conflict / already on another job',
+                    'Customer address is outside my service radius',
+                    'Specific spare parts or diagnostic tools unavailable today',
+                    'Emergency / personal leave',
+                    'Other',
+                  ].map((reasonOption) => (
+                    <label
+                      key={reasonOption}
+                      className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs text-slate-800 transition"
+                    >
+                      <input
+                        type="radio"
+                        name="rejectReason"
+                        value={reasonOption}
+                        checked={rejectReason === reasonOption}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span>{reasonOption}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {rejectReason === 'Other' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Specify Reason:</label>
+                    <textarea
+                      rows={2}
+                      value={customRejectReason}
+                      onChange={(e) => setCustomRejectReason(e.target.value)}
+                      placeholder="Please explain reason for declining..."
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    />
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setRejectingRequest(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReject}
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
+                  >
+                    {isSubmittingReject ? 'Declining...' : 'Confirm Decline & Notify Admin'}
                   </button>
                 </div>
               </form>

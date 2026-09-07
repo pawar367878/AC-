@@ -62,7 +62,42 @@ export const api = {
       user: User;
       customer: Customer;
       token: string;
+      message?: string;
     }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  registerTechnician: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    address?: string;
+    services_provided?: string[];
+  }) =>
+    request<{
+      success: boolean;
+      user: User;
+      technician: ServiceProvider;
+      token: string;
+      message?: string;
+    }>('/auth/register-technician', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  registerOwner: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    address?: string;
+  }) =>
+    request<{
+      success: boolean;
+      user: User;
+      token: string;
+      message?: string;
+    }>('/auth/register-owner', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -119,6 +154,10 @@ export const api = {
   getServicesForModel: (modelId: string) =>
     request<{ success: boolean; model_id: string; services: ServiceItem[] }>(
       `/models/${modelId}/services`
+    ),
+  getServicesForBrand: (brandId: string) =>
+    request<{ success: boolean; brand_id: string; services: ServiceItem[] }>(
+      `/brands/${brandId}/services`
     ),
   createService: (data: Partial<ServiceItem>) =>
     request<{ success: boolean; service: ServiceItem }>('/services', {
@@ -202,6 +241,11 @@ export const api = {
     request<{ success: boolean; request: ServiceRequest }>(`/requests/${requestId}/accept`, {
       method: 'POST',
       body: JSON.stringify({ user_id, user_name }),
+    }),
+  technicianReject: (requestId: string, reason?: string, user_id?: string, user_name?: string) =>
+    request<{ success: boolean; request: ServiceRequest }>(`/requests/${requestId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, user_id, user_name }),
     }),
   technicianStart: (requestId: string, user_id?: string, user_name?: string) =>
     request<{ success: boolean; request: ServiceRequest }>(`/requests/${requestId}/start`, {

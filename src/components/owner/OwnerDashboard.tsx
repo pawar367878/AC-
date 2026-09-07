@@ -337,7 +337,11 @@ export const OwnerDashboard: React.FC = () => {
   });
 
   const unassignedRequests = requests.filter(
-    (r) => r.status === 'PENDING' || !r.technician_id
+    (r) =>
+      r.status === 'PENDING' ||
+      r.status === 'REJECTED' ||
+      !r.technician_id ||
+      r.technician_response === 'REJECTED'
   );
 
   const navItems: NavItem[] = [
@@ -563,7 +567,7 @@ export const OwnerDashboard: React.FC = () => {
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Status:</span>
-              {['ALL', 'PENDING', 'ASSIGNED', 'ACCEPTED', 'IN PROGRESS', 'COMPLETED', 'CANCELLED'].map((st) => (
+              {['ALL', 'PENDING', 'ASSIGNED', 'ACCEPTED', 'IN PROGRESS', 'COMPLETED', 'CANCELLED', 'REJECTED'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setReqStatusFilter(st)}
@@ -635,25 +639,64 @@ export const OwnerDashboard: React.FC = () => {
                         </td>
                         <td className="p-4">
                           {req.technician ? (
-                            <span className="font-bold text-slate-900 flex items-center gap-1">
-                              <Shield className="w-3 h-3 text-purple-600" />
-                              {req.technician.name}
-                            </span>
+                            <div>
+                              <span className="font-bold text-slate-900 flex items-center gap-1">
+                                <Shield className="w-3 h-3 text-purple-600" />
+                                {req.technician.name}
+                              </span>
+                              {req.technician_response === 'REJECTED' && (
+                                <span className="text-[10px] text-rose-600 font-bold block mt-0.5">
+                                  Declined: {req.technician_rejection_reason || 'Unavailable'}
+                                </span>
+                              )}
+                              {req.technician_response === 'ACCEPTED' && (
+                                <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">
+                                  Confirmed by Tech
+                                </span>
+                              )}
+                              {req.technician_response === 'PENDING' && (
+                                <span className="text-[10px] text-amber-600 font-semibold block mt-0.5">
+                                  Pending Tech Confirmation
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-amber-600 text-[11px] font-semibold">Unassigned</span>
                           )}
                         </td>
                         <td className="p-4">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              req.status === 'REJECTED' || req.technician_response === 'REJECTED'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                : req.status === 'COMPLETED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : req.status === 'CANCELLED'
+                                ? 'bg-slate-200 text-slate-700'
+                                : req.status === 'IN PROGRESS'
+                                ? 'bg-purple-100 text-purple-800'
+                                : req.status === 'ACCEPTED'
+                                ? 'bg-sky-100 text-sky-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
                             {req.status}
                           </span>
                         </td>
                         <td className="p-4 text-right">
                           <button
                             onClick={() => handleOpenAssign(req)}
-                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition shadow-sm"
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm ${
+                              req.status === 'REJECTED' || req.technician_response === 'REJECTED'
+                                ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                                : 'bg-purple-600 hover:bg-purple-700 text-white'
+                            }`}
                           >
-                            {req.technician ? 'Reassign' : 'Assign Tech (GPS)'}
+                            {req.status === 'REJECTED' || req.technician_response === 'REJECTED'
+                              ? 'Reassign Tech'
+                              : req.technician
+                              ? 'Reassign'
+                              : 'Assign Tech (GPS)'}
                           </button>
                         </td>
                       </tr>
@@ -1279,16 +1322,31 @@ export const OwnerDashboard: React.FC = () => {
               unassignedRequests.map((req) => (
                 <div
                   key={req.id}
-                  className="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className={`rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                    req.status === 'REJECTED' || req.technician_response === 'REJECTED'
+                      ? 'bg-rose-50/70 border border-rose-300'
+                      : 'bg-white border border-amber-200'
+                  }`}
                 >
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs font-bold text-slate-900">{req.id}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                        {req.status}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          req.status === 'REJECTED' || req.technician_response === 'REJECTED'
+                            ? 'bg-rose-200 text-rose-900'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {req.status === 'REJECTED' ? 'REJECTED - NEEDS REASSIGNMENT' : req.status}
                       </span>
                       <span className="text-xs text-slate-400">• Slot: {req.preferred_date} ({req.preferred_time})</span>
                     </div>
+                    {req.technician_response === 'REJECTED' && (
+                      <div className="mt-1.5 p-2 bg-white/80 rounded-lg border border-rose-200 text-rose-800 text-xs">
+                        ⚠️ <strong>Technician Declined:</strong> {req.technician?.name || 'Technician'} declined this request (Reason: "{req.technician_rejection_reason || 'Unavailable'}").
+                      </div>
+                    )}
                     <h4 className="font-bold text-slate-900 text-sm mt-1">
                       {req.customer_name} • {req.brand?.name} {req.model?.model_name}
                     </h4>
@@ -1304,9 +1362,13 @@ export const OwnerDashboard: React.FC = () => {
                   <div className="shrink-0">
                     <button
                       onClick={() => handleOpenAssign(req)}
-                      className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5"
+                      className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5 ${
+                        req.status === 'REJECTED' || req.technician_response === 'REJECTED'
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
                     >
-                      <Compass className="w-4 h-4" /> Dispatch Nearest Tech
+                      <Compass className="w-4 h-4" /> {req.status === 'REJECTED' ? 'Reassign Tech Now' : 'Dispatch Nearest Tech'}
                     </button>
                   </div>
                 </div>

@@ -1136,6 +1136,30 @@ class RelationalDatabase {
       });
   }
 
+  public getMappedServicesForBrand(brandId: string): ServiceItem[] {
+    const brandModels = this.data.ac_models.filter((m) => m.brand_id === brandId && m.is_active);
+    const modelIds = new Set(brandModels.map((m) => m.id));
+    const enabledMappings = this.data.ac_model_services.filter(
+      (map) => modelIds.has(map.ac_model_id) && map.is_enabled
+    );
+    const serviceIds = new Set(enabledMappings.map((m) => m.service_id));
+
+    if (serviceIds.size === 0) {
+      return this.getAllServices(true);
+    }
+
+    return this.data.services
+      .filter((s) => s.status === 'ACTIVE' && serviceIds.has(s.id))
+      .map((s) => {
+        const mapping = enabledMappings.find((m) => m.service_id === s.id);
+        const effectivePrice = mapping?.custom_price_override ?? s.price;
+        return {
+          ...s,
+          price: effectivePrice,
+        };
+      });
+  }
+
   public getAllMappings(): ACModelService[] {
     return this.data.ac_model_services;
   }
@@ -1334,7 +1358,9 @@ class RelationalDatabase {
 
     const oldStatus = req.status;
     req.assigned_technician_id = technicianId;
+    req.assigned_at = new Date().toISOString();
     req.status = 'ASSIGNED';
+    req.technician_response = 'PENDING';
     req.updated_at = new Date().toISOString();
 
     // Record status history
@@ -1392,6 +1418,7 @@ class RelationalDatabase {
 
     const oldStatus = req.status;
     req.status = 'ACCEPTED';
+    req.technician_response = 'ACCEPTED';
     req.updated_at = new Date().toISOString();
 
     this.data.service_status_history.push({
@@ -1406,6 +1433,15 @@ class RelationalDatabase {
       remarks: 'Technician accepted the job and confirmed availability.',
     });
 
+    // Notify Owner
+    this.createNotification({
+      recipient_user_id: 'usr_admin',
+      recipient_role: 'OWNER',
+      title: 'Job Accepted by Technician',
+      message: `Technician ${techUser.name} accepted job #${req.id}.`,
+      related_request_id: req.id,
+    });
+
     // Notify customer
     const customer = this.getCustomerById(req.customer_id);
     if (customer) {
@@ -1414,6 +1450,52 @@ class RelationalDatabase {
         recipient_role: 'CUSTOMER',
         title: 'Request Accepted',
         message: `Your service request #${req.id} has been accepted by technician ${techUser.name}.`,
+        related_request_id: req.id,
+      });
+    }
+
+    this.saveToDisk();
+    return this.hydrateRequest(req);
+  }
+
+  public technicianReject(requestId: string, techUser: User, reason?: string): ServiceRequest | null {
+    const req = this.data.service_requests.find((r) => r.id === requestId);
+    if (!req) return null;
+
+    const oldStatus = req.status;
+    req.status = 'REJECTED';
+    req.technician_response = 'REJECTED';
+    req.updated_at = new Date().toISOString();
+
+    this.data.service_status_history.push({
+      id: `hist_${Date.now()}`,
+      service_request_id: requestId,
+      previous_status: oldStatus,
+      new_status: 'REJECTED',
+      changed_by_user_id: techUser.id,
+      changed_by_role: 'SERVICE_PROVIDER',
+      changed_by_name: techUser.name,
+      timestamp: req.updated_at,
+      remarks: reason ? `Declined by technician: ${reason}` : 'Technician rejected the assigned service request.',
+    });
+
+    // Notify Owner immediately
+    this.createNotification({
+      recipient_user_id: 'usr_admin',
+      recipient_role: 'OWNER',
+      title: 'Job Declined by Technician',
+      message: `Technician ${techUser.name} rejected job #${req.id}. Reason: ${reason || 'Schedule Conflict'}. Please reassign to another technician.`,
+      related_request_id: req.id,
+    });
+
+    // Notify Customer with helpful update
+    const customer = this.getCustomerById(req.customer_id);
+    if (customer) {
+      this.createNotification({
+        recipient_user_id: customer.user_id,
+        recipient_role: 'CUSTOMER',
+        title: 'Service Dispatch Update',
+        message: `Technician was unavailable for request #${req.id}. Our service manager is reassigning a technician immediately.`,
         related_request_id: req.id,
       });
     }

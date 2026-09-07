@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type AppRoute =
   | '/'
+  | '/customer/login'
   | '/customer/dashboard'
   | '/technician/login'
   | '/technician/dashboard'

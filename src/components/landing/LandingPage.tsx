@@ -38,17 +38,8 @@ export const LandingPage: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCustomerLoggingIn, setIsCustomerLoggingIn] = useState(false);
 
-  const handleCustomerDirectAccess = async () => {
-    try {
-      setIsCustomerLoggingIn(true);
-      await loginCustomerDemo();
-      navigate('/customer/dashboard');
-    } catch (err) {
-      console.error('Customer direct access error:', err);
-      navigate('/customer/dashboard');
-    } finally {
-      setIsCustomerLoggingIn(false);
-    }
+  const handleCustomerDirectAccess = () => {
+    navigate('/customer/login');
   };
 
   const servicesList = [

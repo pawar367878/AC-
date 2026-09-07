@@ -2,31 +2,29 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useRouter } from '../../context/RouterContext.tsx';
 import {
-  ShieldAlert,
+  User as UserIcon,
   ArrowLeft,
   Lock,
-  User,
   Mail,
   Phone,
   MapPin,
   AlertCircle,
-  Building2,
-  Crown,
   CheckCircle2,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 
-export const OwnerLoginPage: React.FC = () => {
-  const { login, registerOwner } = useAuth();
+export const CustomerLoginPage: React.FC = () => {
+  const { login, loginCustomerDemo, registerCustomer } = useAuth();
   const { navigate } = useRouter();
 
   const [tab, setTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
   // Login form state
-  const [username, setUsername] = useState('owner');
-  const [password, setPassword] = useState('owner123');
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginIdentifier, setLoginIdentifier] = useState('priya@example.com');
+  const [loginPassword, setLoginPassword] = useState('pass123');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Register form state
   const [regName, setRegName] = useState('');
@@ -39,43 +37,62 @@ export const OwnerLoginPage: React.FC = () => {
   const [regSuccess, setRegSuccess] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle Customer Login
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsSubmitting(true);
+    setLoginError('');
+    if (!loginIdentifier.trim()) {
+      setLoginError('Please enter your email ID or username');
+      return;
+    }
 
+    setIsLoggingIn(true);
     try {
-      const success = await login(username.trim(), password);
+      const success = await login(loginIdentifier.trim(), loginPassword);
       if (success) {
-        navigate('/owner/dashboard');
+        navigate('/customer/dashboard');
       } else {
-        setError('Invalid username or password.');
+        setLoginError('Invalid email ID or password. Please verify and try again.');
       }
     } catch (err: any) {
-      setError(err?.message || 'Invalid username or password.');
+      setLoginError(err?.message || 'Login failed. Please check your credentials.');
     } finally {
-      setIsSubmitting(false);
+      setIsLoggingIn(false);
     }
   };
 
-  const handleFillDemo = () => {
-    setUsername('owner');
-    setPassword('owner123');
-    setError('');
+  // Direct Customer Demo Login
+  const handleDemoLogin = async () => {
+    setLoginError('');
+    setIsLoggingIn(true);
+    try {
+      const success = await loginCustomerDemo();
+      if (success) {
+        navigate('/customer/dashboard');
+      } else {
+        setLoginError('Demo login unavailable.');
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || 'Demo login error.');
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  // Handle Customer Registration
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
     setRegSuccess('');
 
+    // Validations
     if (!regName.trim()) {
       setRegError('Please enter your full name');
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!regEmail.trim() || !emailRegex.test(regEmail.trim())) {
-      setRegError('Please provide a valid email address');
+      setRegError('Please provide a valid email address (e.g. name@example.com)');
       return;
     }
     const cleanPhone = regPhone.replace(/\D/g, '');
@@ -84,7 +101,7 @@ export const OwnerLoginPage: React.FC = () => {
       return;
     }
     if (!regAddress.trim()) {
-      setRegError('Please enter your office address');
+      setRegError('Please enter your service address');
       return;
     }
     if (!regPassword || regPassword.length < 4) {
@@ -92,13 +109,13 @@ export const OwnerLoginPage: React.FC = () => {
       return;
     }
     if (regPassword !== regConfirmPassword) {
-      setRegError('Passwords do not match');
+      setRegError('Passwords do not match. Please retype carefully.');
       return;
     }
 
     setIsRegistering(true);
     try {
-      const success = await registerOwner({
+      const success = await registerCustomer({
         name: regName.trim(),
         email: regEmail.trim().toLowerCase(),
         phone: cleanPhone,
@@ -107,12 +124,12 @@ export const OwnerLoginPage: React.FC = () => {
       });
 
       if (success) {
-        setRegSuccess('Owner account created successfully! Redirecting to dashboard...');
+        setRegSuccess('Account created successfully! Redirecting to your dashboard...');
         setTimeout(() => {
-          navigate('/owner/dashboard');
+          navigate('/customer/dashboard');
         }, 1000);
       } else {
-        setRegError('Registration failed. Please try again.');
+        setRegError('Failed to create account. Please try again.');
       }
     } catch (err: any) {
       setRegError(err?.message || 'Registration failed. Email might already exist.');
@@ -122,7 +139,7 @@ export const OwnerLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-sky-950 to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 px-4">
       {/* Back to Home Link */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-4">
         <button
@@ -135,20 +152,20 @@ export const OwnerLoginPage: React.FC = () => {
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Brand / Icon Badge */}
+        {/* Customer Badge */}
         <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 p-0.5 shadow-xl shadow-indigo-500/20">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-400">
-              <Crown className="w-8 h-8" />
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 p-0.5 shadow-xl shadow-sky-500/20">
+            <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-sky-400">
+              <UserIcon className="w-8 h-8" />
             </div>
           </div>
         </div>
 
         <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-          Owner / Admin Portal
+          Customer Portal
         </h2>
         <p className="mt-1 text-xs sm:text-sm text-slate-400">
-          Centralized management for AC Brands, Models, Services & Job Assignments
+          Book certified AC repairs, track technicians & manage service requests
         </p>
       </div>
 
@@ -160,27 +177,27 @@ export const OwnerLoginPage: React.FC = () => {
               type="button"
               onClick={() => {
                 setTab('LOGIN');
-                setError('');
                 setRegError('');
+                setLoginError('');
               }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
                 tab === 'LOGIN'
-                  ? 'bg-white text-indigo-950 shadow-sm'
+                  ? 'bg-white text-sky-900 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Owner Login
+              Customer Login
             </button>
             <button
               type="button"
               onClick={() => {
                 setTab('REGISTER');
-                setError('');
                 setRegError('');
+                setLoginError('');
               }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
                 tab === 'REGISTER'
-                  ? 'bg-white text-indigo-950 shadow-sm'
+                  ? 'bg-white text-sky-900 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -192,45 +209,49 @@ export const OwnerLoginPage: React.FC = () => {
           {tab === 'LOGIN' && (
             <div>
               {/* Quick Demo Credentials Autofill Banner */}
-              <div className="mb-5 p-3.5 bg-indigo-50 rounded-2xl border border-indigo-200 flex items-center justify-between gap-3 text-xs">
+              <div className="mb-5 p-3.5 bg-sky-50 rounded-2xl border border-sky-200 flex items-center justify-between gap-3 text-xs">
                 <div>
-                  <span className="font-bold text-indigo-900 block">Demo Admin Credentials:</span>
-                  <p className="text-[11px] text-indigo-700 font-mono mt-0.5">
-                    owner / owner123
+                  <span className="font-bold text-sky-900 block">Customer Demo:</span>
+                  <p className="text-[11px] text-sky-700 font-mono mt-0.5">
+                    priya@example.com / pass123
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={handleFillDemo}
-                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold shrink-0 transition shadow-sm"
+                  onClick={() => {
+                    setLoginIdentifier('priya@example.com');
+                    setLoginPassword('pass123');
+                    setLoginError('');
+                  }}
+                  className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-bold shrink-0 transition shadow-sm"
                 >
                   Autofill
                 </button>
               </div>
 
-              {error && (
+              {loginError && (
                 <div className="mb-4 p-3 bg-rose-50 rounded-2xl border border-rose-200 flex items-center gap-2 text-xs text-rose-700 font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                  <span>{error}</span>
+                  <span>{loginError}</span>
                 </div>
               )}
 
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-4" onSubmit={handleLoginSubmit}>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Email ID or Username
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <User className="w-4 h-4" />
+                      <Mail className="w-4 h-4" />
                     </div>
                     <input
                       type="text"
                       required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="e.g. owner or your email"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition font-medium"
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      placeholder="e.g. priya@example.com"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium"
                     />
                   </div>
                 </div>
@@ -246,41 +267,46 @@ export const OwnerLoginPage: React.FC = () => {
                     <input
                       type="password"
                       required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition font-medium"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium"
                     />
                   </div>
                 </div>
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 via-slate-800 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <Building2 className="w-4 h-4" />
-                        <span>Sign In to Owner Dashboard</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full mt-2 py-3 px-4 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-600/25 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isLoggingIn ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span>Log In to Customer Portal</span>
+                  )}
+                </button>
               </form>
 
+              {/* Direct One-Click Demo Access */}
               <div className="mt-5 pt-4 border-t border-slate-200 text-center">
-                <p className="text-[11px] text-slate-500">
-                  New business owner?{' '}
+                <button
+                  type="button"
+                  onClick={handleDemoLogin}
+                  disabled={isLoggingIn}
+                  className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-300 transition flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>Instant 1-Click Customer Demo</span>
+                </button>
+                <p className="text-[11px] text-slate-500 mt-2">
+                  Don't have an account?{' '}
                   <button
                     type="button"
                     onClick={() => setTab('REGISTER')}
-                    className="text-indigo-600 font-bold hover:underline"
+                    className="text-sky-600 font-bold hover:underline"
                   >
-                    Register new owner account
+                    Register new customer account
                   </button>
                 </p>
               </div>
@@ -304,22 +330,22 @@ export const OwnerLoginPage: React.FC = () => {
                 </div>
               )}
 
-              <form className="space-y-3.5" onSubmit={handleRegister}>
+              <form className="space-y-3.5" onSubmit={handleRegisterSubmit}>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Owner Full Name *
+                    Full Name *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <User className="w-4 h-4" />
+                      <UserIcon className="w-4 h-4" />
                     </div>
                     <input
                       type="text"
                       required
                       value={regName}
                       onChange={(e) => setRegName(e.target.value)}
-                      placeholder="e.g. Rajesh Verma"
-                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-medium"
+                      placeholder="e.g. Ramesh Kumar"
+                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium"
                     />
                   </div>
                 </div>
@@ -337,8 +363,8 @@ export const OwnerLoginPage: React.FC = () => {
                       required
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="admin@smartac.com"
-                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-medium"
+                      placeholder="ramesh@example.com"
+                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium"
                     />
                   </div>
                 </div>
@@ -356,16 +382,16 @@ export const OwnerLoginPage: React.FC = () => {
                       required
                       value={regPhone}
                       onChange={(e) => setRegPhone(e.target.value)}
-                      placeholder="10-digit mobile number"
+                      placeholder="10-digit mobile number (e.g. 9876543210)"
                       maxLength={14}
-                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-medium"
+                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Headquarters / Office Address *
+                    Default Service Address *
                   </label>
                   <div className="relative">
                     <div className="absolute top-2.5 left-3.5 pointer-events-none text-slate-400">
@@ -376,8 +402,8 @@ export const OwnerLoginPage: React.FC = () => {
                       rows={2}
                       value={regAddress}
                       onChange={(e) => setRegAddress(e.target.value)}
-                      placeholder="Office address, City, State"
-                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-medium resize-none"
+                      placeholder="House No, Apartment, Street, City, Landmark"
+                      className="w-full pl-10 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium resize-none"
                     />
                   </div>
                 </div>
@@ -397,7 +423,7 @@ export const OwnerLoginPage: React.FC = () => {
                         value={regPassword}
                         onChange={(e) => setRegPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-medium"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium"
                       />
                     </div>
                   </div>
@@ -416,7 +442,7 @@ export const OwnerLoginPage: React.FC = () => {
                         value={regConfirmPassword}
                         onChange={(e) => setRegConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition font-medium"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition font-medium"
                       />
                     </div>
                   </div>
@@ -425,14 +451,14 @@ export const OwnerLoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isRegistering}
-                  className="w-full mt-3 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/25 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full mt-3 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/25 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isRegistering ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>Register Owner Account</span>
+                      <span>Register Account</span>
                     </>
                   )}
                 </button>
@@ -444,7 +470,7 @@ export const OwnerLoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTab('LOGIN')}
-                    className="text-indigo-600 font-bold hover:underline"
+                    className="text-sky-600 font-bold hover:underline"
                   >
                     Click here to log in
                   </button>
@@ -457,4 +483,3 @@ export const OwnerLoginPage: React.FC = () => {
     </div>
   );
 };
-

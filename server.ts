@@ -101,13 +101,15 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   // Email-based lookup (e.g., custom registered customer or demo switcher)
-  const user = db.getUserByEmail(identifier);
+  const user = db.getUserByEmail(identifier.trim().toLowerCase()) || db.getUserByEmail(identifier);
   if (!user) {
     return res.status(401).json({ success: false, message: 'Invalid username or password.' });
   }
 
-  // Optional password check for email users
-  if (password && password !== 'pass123' && password !== 'admin123' && password !== 'technician123' && password !== 'owner123' && password.length < 3) {
+  // Password check for registered users with explicit password or demo fallbacks
+  if (user.password && password && user.password !== password) {
+    return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+  } else if (!user.password && password && password !== 'pass123' && password !== 'admin123' && password !== 'technician123' && password !== 'owner123' && password.length < 3) {
     return res.status(401).json({ success: false, message: 'Invalid username or password.' });
   }
 
@@ -134,21 +136,23 @@ app.post('/api/auth/register', (req, res) => {
   const { name, email, phone, password, address, latitude, longitude } = req.body;
 
   if (!name || !email || !phone) {
-    return res.status(400).json({ success: false, message: 'Name, email, and phone are required' });
+    return res.status(400).json({ success: false, message: 'Full name, email, and mobile number are required' });
   }
 
-  const existing = db.getUserByEmail(email);
+  const existing = db.getUserByEmail(email.trim().toLowerCase());
   if (existing) {
-    return res.status(400).json({ success: false, message: 'Email is already registered' });
+    return res.status(400).json({ success: false, message: 'An account with this email already exists' });
   }
 
   const userId = `usr_cust_${Date.now()}`;
   const newUser = db.createUser({
     id: userId,
-    email,
+    email: email.trim().toLowerCase(),
     role: 'CUSTOMER',
-    name,
-    phone,
+    name: name.trim(),
+    phone: phone.trim(),
+    password: password || 'pass123',
+    address: address || '',
     created_at: new Date().toISOString(),
   });
 
@@ -156,9 +160,9 @@ app.post('/api/auth/register', (req, res) => {
   const newCustomer = db.createCustomer({
     id: customerId,
     user_id: userId,
-    full_name: name,
-    phone,
-    email,
+    full_name: name.trim(),
+    phone: phone.trim(),
+    email: email.trim().toLowerCase(),
     default_address: address || '',
     latitude: latitude ? Number(latitude) : null,
     longitude: longitude ? Number(longitude) : null,
@@ -169,7 +173,101 @@ app.post('/api/auth/register', (req, res) => {
     success: true,
     user: newUser,
     customer: newCustomer,
-    token: `demo_token_${userId}`,
+    token: `token_${userId}`,
+    message: 'Customer account created successfully!',
+  });
+});
+
+// Register Technician
+app.post('/api/auth/register-technician', (req, res) => {
+  const { name, email, phone, address, services_provided, password } = req.body;
+
+  if (!name || !email || !phone) {
+    return res.status(400).json({ success: false, message: 'Full name, email, and mobile number are required' });
+  }
+
+  const existing = db.getUserByEmail(email.trim().toLowerCase());
+  if (existing) {
+    return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+  }
+
+  const userId = `usr_tech_${Date.now()}`;
+  const newUser = db.createUser({
+    id: userId,
+    email: email.trim().toLowerCase(),
+    role: 'SERVICE_PROVIDER',
+    name: name.trim(),
+    phone: phone.trim(),
+    password: password || 'technician123',
+    address: address || '',
+    created_at: new Date().toISOString(),
+  });
+
+  const techId = `tech_${Date.now()}`;
+  const skills = Array.isArray(services_provided) && services_provided.length > 0
+    ? services_provided
+    : ['AC General Service', 'AC Repair', 'Installation'];
+
+  const newTechnician = db.createTechnician({
+    id: techId,
+    user_id: userId,
+    name: name.trim(),
+    phone: phone.trim(),
+    email: email.trim().toLowerCase(),
+    skills,
+    service_areas: address ? [address] : ['City Area'],
+    address: address || '',
+    availability: 'AVAILABLE',
+    is_available: true,
+    jobs_completed_count: 0,
+    experience_years: 3,
+    status: 'ACTIVE',
+    current_latitude: 12.9716,
+    current_longitude: 77.5946,
+    rating: 5.0,
+    total_ratings_count: 0,
+    created_at: new Date().toISOString(),
+  });
+
+  res.status(201).json({
+    success: true,
+    user: newUser,
+    technician: newTechnician,
+    token: `token_${userId}`,
+    message: 'Technician account registered successfully!',
+  });
+});
+
+// Register Owner
+app.post('/api/auth/register-owner', (req, res) => {
+  const { name, email, phone, address, password } = req.body;
+
+  if (!name || !email || !phone) {
+    return res.status(400).json({ success: false, message: 'Name, email, and mobile number are required' });
+  }
+
+  const existing = db.getUserByEmail(email.trim().toLowerCase());
+  if (existing) {
+    return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+  }
+
+  const userId = `usr_owner_${Date.now()}`;
+  const newUser = db.createUser({
+    id: userId,
+    email: email.trim().toLowerCase(),
+    role: 'OWNER',
+    name: name.trim(),
+    phone: phone.trim(),
+    password: password || 'owner123',
+    address: address || '',
+    created_at: new Date().toISOString(),
+  });
+
+  res.status(201).json({
+    success: true,
+    user: newUser,
+    token: `token_${userId}`,
+    message: 'Owner account registered successfully!',
   });
 });
 
@@ -366,6 +464,13 @@ app.get('/api/models/:modelId/services', (req, res) => {
   const { modelId } = req.params;
   const services = db.getMappedServicesForModel(modelId);
   res.json({ success: true, model_id: modelId, services });
+});
+
+// CRITICAL FEATURE: Fetch mapped services for selected AC Brand
+app.get('/api/brands/:brandId/services', (req, res) => {
+  const { brandId } = req.params;
+  const services = db.getMappedServicesForBrand(brandId);
+  res.json({ success: true, brand_id: brandId, services });
 });
 
 app.post('/api/services', (req, res) => {
@@ -636,6 +741,23 @@ app.post('/api/requests/:id/accept', (req, res) => {
   };
 
   const updated = db.technicianAccept(req.params.id, techUser);
+  if (!updated) return res.status(404).json({ success: false, message: 'Request not found' });
+
+  res.json({ success: true, request: updated });
+});
+
+// Technician rejects job
+app.post('/api/requests/:id/reject', (req, res) => {
+  const techUser = {
+    id: req.body.user_id || 'usr_tech_1',
+    name: req.body.user_name || 'Technician',
+    role: 'SERVICE_PROVIDER' as UserRole,
+    email: '',
+    phone: '',
+    created_at: '',
+  };
+
+  const updated = db.technicianReject(req.params.id, techUser, req.body.reason);
   if (!updated) return res.status(404).json({ success: false, message: 'Request not found' });
 
   res.json({ success: true, request: updated });

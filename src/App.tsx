@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { RouterProvider, useRouter } from './context/RouterContext.tsx';
 import { LandingPage } from './components/landing/LandingPage.tsx';
+import { CustomerLoginPage } from './components/auth/CustomerLoginPage.tsx';
 import { TechnicianLoginPage } from './components/auth/TechnicianLoginPage.tsx';
 import { OwnerLoginPage } from './components/auth/OwnerLoginPage.tsx';
 import { CustomerDashboard } from './components/customer/CustomerDashboard.tsx';
@@ -34,6 +35,13 @@ const MainApp: React.FC = () => {
     }
   }, [isLoading, role, currentPath, navigate]);
 
+  // If user is already logged in as Customer and visits /customer/login, redirect to dashboard
+  useEffect(() => {
+    if (!isLoading && role === 'CUSTOMER' && currentPath === '/customer/login') {
+      navigate('/customer/dashboard');
+    }
+  }, [isLoading, role, currentPath, navigate]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white space-y-4">
@@ -46,6 +54,10 @@ const MainApp: React.FC = () => {
   }
 
   // Routing Switch
+  if (currentPath === '/customer/login') {
+    return <CustomerLoginPage />;
+  }
+
   if (currentPath === '/technician/login') {
     return <TechnicianLoginPage />;
   }
