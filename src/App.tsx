@@ -2,43 +2,37 @@ import React, { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { RouterProvider, useRouter } from './context/RouterContext.tsx';
 import { LandingPage } from './components/landing/LandingPage.tsx';
+import { LoginPage } from './components/auth/LoginPage.tsx';
 import { CustomerLoginPage } from './components/auth/CustomerLoginPage.tsx';
 import { TechnicianLoginPage } from './components/auth/TechnicianLoginPage.tsx';
 import { OwnerLoginPage } from './components/auth/OwnerLoginPage.tsx';
 import { CustomerDashboard } from './components/customer/CustomerDashboard.tsx';
 import { TechnicianDashboard } from './components/technician/TechnicianDashboard.tsx';
 import { OwnerDashboard } from './components/owner/OwnerDashboard.tsx';
+import { AccessDeniedView } from './components/common/AccessDeniedView.tsx';
 import { Wind } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const { role, isLoading, loginCustomerDemo } = useAuth();
+  const { user, role, isLoading } = useAuth();
   const { currentPath, navigate } = useRouter();
 
-  // If user visits customer dashboard directly and not logged in as customer, ensure customer session is ready
+  // If user is already authenticated and visits any login page, redirect to their role's dashboard
   useEffect(() => {
-    if (!isLoading && currentPath === '/customer/dashboard' && role !== 'CUSTOMER') {
-      loginCustomerDemo();
-    }
-  }, [isLoading, currentPath, role, loginCustomerDemo]);
-
-  // If user is already logged in as Technician and visits /technician/login, redirect to dashboard
-  useEffect(() => {
-    if (!isLoading && role === 'SERVICE_PROVIDER' && currentPath === '/technician/login') {
-      navigate('/technician/dashboard');
-    }
-  }, [isLoading, role, currentPath, navigate]);
-
-  // If user is already logged in as Owner and visits /owner/login, redirect to dashboard
-  useEffect(() => {
-    if (!isLoading && role === 'OWNER' && currentPath === '/owner/login') {
-      navigate('/owner/dashboard');
-    }
-  }, [isLoading, role, currentPath, navigate]);
-
-  // If user is already logged in as Customer and visits /customer/login, redirect to dashboard
-  useEffect(() => {
-    if (!isLoading && role === 'CUSTOMER' && currentPath === '/customer/login') {
-      navigate('/customer/dashboard');
+    if (!isLoading && role) {
+      if (
+        currentPath === '/login' ||
+        currentPath === '/customer/login' ||
+        currentPath === '/technician/login' ||
+        currentPath === '/owner/login'
+      ) {
+        if (role === 'CUSTOMER') {
+          navigate('/customer/dashboard');
+        } else if (role === 'SERVICE_PROVIDER') {
+          navigate('/technician/dashboard');
+        } else if (role === 'OWNER') {
+          navigate('/owner/dashboard');
+        }
+      }
     }
   }, [isLoading, role, currentPath, navigate]);
 
@@ -48,12 +42,16 @@ const MainApp: React.FC = () => {
         <div className="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
           <Wind className="w-6 h-6 animate-spin" />
         </div>
-        <p className="text-sm font-semibold text-slate-300">Connecting to SmartAC Live Relational Engine...</p>
+        <p className="text-sm font-semibold text-slate-300">Loading SmartAC Engine...</p>
       </div>
     );
   }
 
-  // Routing Switch
+  // Public & Authentication Routes
+  if (currentPath === '/login') {
+    return <LoginPage />;
+  }
+
   if (currentPath === '/customer/login') {
     return <CustomerLoginPage />;
   }
@@ -66,25 +64,41 @@ const MainApp: React.FC = () => {
     return <OwnerLoginPage />;
   }
 
+  // Protected Role-Based Routes
+  // 1. Customer Dashboard Route Protection
+  if (currentPath === '/customer/dashboard') {
+    if (!user || !role) {
+      return <LoginPage />;
+    }
+    if (role !== 'CUSTOMER') {
+      return <AccessDeniedView requiredRole="CUSTOMER" targetPageName="Customer Service Portal" />;
+    }
+    return <CustomerDashboard />;
+  }
+
+  // 2. Technician Dashboard Route Protection
   if (currentPath === '/technician/dashboard') {
+    if (!user || !role) {
+      return <LoginPage />;
+    }
     if (role !== 'SERVICE_PROVIDER') {
-      return <TechnicianLoginPage />;
+      return <AccessDeniedView requiredRole="SERVICE_PROVIDER" targetPageName="Technician Job Desk" />;
     }
     return <TechnicianDashboard />;
   }
 
+  // 3. Owner/Admin Dashboard Route Protection
   if (currentPath === '/owner/dashboard') {
+    if (!user || !role) {
+      return <LoginPage />;
+    }
     if (role !== 'OWNER') {
-      return <OwnerLoginPage />;
+      return <AccessDeniedView requiredRole="OWNER" targetPageName="Owner / Administrator Control Center" />;
     }
     return <OwnerDashboard />;
   }
 
-  if (currentPath === '/customer/dashboard') {
-    return <CustomerDashboard />;
-  }
-
-  // Public Landing Page (default route: '/')
+  // Default Route: Public Landing Page ('/')
   return <LandingPage />;
 };
 
@@ -99,4 +113,3 @@ export function App() {
 }
 
 export default App;
-

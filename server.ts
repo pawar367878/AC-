@@ -84,8 +84,12 @@ app.post('/api/auth/login', (req, res) => {
     });
   }
 
-  // Direct Customer demo access or lookup
+  // Exact Customer demo access per requirements:
+  // Username: customer, Password: customer123
   if (identifier.toLowerCase() === 'customer' || identifier.toLowerCase() === 'democustomer') {
+    if (password !== 'customer123') {
+      return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+    }
     const custUser = db.getUserById('usr_cust_1') || db.getAllUsers().find((u) => u.role === 'CUSTOMER');
     if (!custUser) {
       return res.status(404).json({ success: false, message: 'Customer account not found' });
@@ -109,7 +113,7 @@ app.post('/api/auth/login', (req, res) => {
   // Password check for registered users with explicit password or demo fallbacks
   if (user.password && password && user.password !== password) {
     return res.status(401).json({ success: false, message: 'Invalid username or password.' });
-  } else if (!user.password && password && password !== 'pass123' && password !== 'admin123' && password !== 'technician123' && password !== 'owner123' && password.length < 3) {
+  } else if (!user.password && password && password !== 'pass123' && password !== 'admin123' && password !== 'technician123' && password !== 'owner123' && password !== 'customer123' && password.length < 3) {
     return res.status(401).json({ success: false, message: 'Invalid username or password.' });
   }
 
@@ -123,6 +127,42 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   res.json({
+    success: true,
+    user,
+    customer,
+    technician,
+    token: `demo_token_${user.id}`,
+  });
+});
+
+// Session verification / restore endpoint
+app.post('/api/auth/session', (req, res) => {
+  const { token, userId } = req.body;
+  if (!token && !userId) {
+    return res.status(401).json({ success: false, message: 'No session payload' });
+  }
+
+  let user = null;
+  if (userId) {
+    user = db.getUserById(userId);
+  } else if (token && token.startsWith('demo_token_')) {
+    const idFromToken = token.replace('demo_token_', '');
+    user = db.getUserById(idFromToken);
+  }
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Session expired or user not found' });
+  }
+
+  let customer = null;
+  let technician = null;
+  if (user.role === 'CUSTOMER') {
+    customer = db.getCustomerByUserId(user.id);
+  } else if (user.role === 'SERVICE_PROVIDER') {
+    technician = db.getTechnicianByUserId(user.id);
+  }
+
+  return res.json({
     success: true,
     user,
     customer,

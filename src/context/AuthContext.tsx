@@ -8,7 +8,7 @@ interface AuthContextType {
   technician: ServiceProvider | null;
   role: UserRole | null;
   isLoading: boolean;
-  login: (identifier: string, password?: string) => Promise<boolean>;
+  login: (identifier: string, password?: string) => Promise<User | null>;
   loginCustomerDemo: () => Promise<boolean>;
   registerCustomer: (data: {
     name: string;
@@ -54,9 +54,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       try {
+        const savedSessionStr = localStorage.getItem('smartac_user_session');
+        if (savedSessionStr) {
+          try {
+            const sess = JSON.parse(savedSessionStr);
+            if (sess.token || sess.userId) {
+              const res = await api.restoreSession(sess.token, sess.userId);
+              if (res.success) {
+                setUser(res.user);
+                setCustomer(res.customer);
+                setTechnician(res.technician);
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn('Failed parsing saved session', e);
+          }
+        }
+
         const savedId = localStorage.getItem('smartac_user_identifier');
         if (savedId) {
-          const res = await api.login(savedId);
+          const res = await api.restoreSession(undefined, savedId);
           if (res.success) {
             setUser(res.user);
             setCustomer(res.customer);
@@ -65,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (err) {
         console.warn('Initial session restore skipped:', err);
+        localStorage.removeItem('smartac_user_session');
         localStorage.removeItem('smartac_user_identifier');
       } finally {
         setIsLoading(false);
@@ -94,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, refreshNotifications]);
 
-  const login = async (identifier: string, password?: string): Promise<boolean> => {
+  const login = async (identifier: string, password?: string): Promise<User | null> => {
     try {
       setIsLoading(true);
       const res = await api.login(identifier, password);
@@ -102,10 +121,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(res.user);
         setCustomer(res.customer);
         setTechnician(res.technician);
+        localStorage.setItem(
+          'smartac_user_session',
+          JSON.stringify({
+            userId: res.user.id,
+            role: res.user.role,
+            token: res.token,
+            identifier,
+          })
+        );
         localStorage.setItem('smartac_user_identifier', identifier);
-        return true;
+        return res.user;
       }
-      return false;
+      return null;
     } catch (err) {
       console.error('Login failed:', err);
       throw err;
@@ -117,11 +145,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginCustomerDemo = useCallback(async (): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const res = await api.login('customer');
+      const res = await api.login('customer', 'customer123');
       if (res.success) {
         setUser(res.user);
         setCustomer(res.customer);
         setTechnician(null);
+        localStorage.setItem(
+          'smartac_user_session',
+          JSON.stringify({
+            userId: res.user.id,
+            role: res.user.role,
+            token: res.token,
+            identifier: 'customer',
+          })
+        );
         localStorage.setItem('smartac_user_identifier', 'customer');
         return true;
       }
@@ -219,11 +256,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setCustomer(null);
     setTechnician(null);
+    localStorage.removeItem('smartac_user_session');
     localStorage.removeItem('smartac_user_identifier');
   }, []);
 
   const switchUserByEmail = async (email: string): Promise<boolean> => {
-    return login(email);
+    const res = await login(email);
+    return Boolean(res);
   };
 
   const markNotificationAsRead = async (id: string) => {

@@ -54,7 +54,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   const handleRefresh = async () => {

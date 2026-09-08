@@ -21,8 +21,8 @@ export const CustomerLoginPage: React.FC = () => {
   const [tab, setTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
   // Login form state
-  const [loginIdentifier, setLoginIdentifier] = useState('priya@example.com');
-  const [loginPassword, setLoginPassword] = useState('pass123');
+  const [loginIdentifier, setLoginIdentifier] = useState('customer');
+  const [loginPassword, setLoginPassword] = useState('customer123');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -213,20 +213,29 @@ export const CustomerLoginPage: React.FC = () => {
                 <div>
                   <span className="font-bold text-sky-900 block">Customer Demo:</span>
                   <p className="text-[11px] text-sky-700 font-mono mt-0.5">
-                    priya@example.com / pass123
+                    customer / customer123
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginIdentifier('priya@example.com');
-                    setLoginPassword('pass123');
-                    setLoginError('');
-                  }}
-                  className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-bold shrink-0 transition shadow-sm"
-                >
-                  Autofill
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginIdentifier('customer');
+                      setLoginPassword('customer123');
+                      setLoginError('');
+                    }}
+                    className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-bold shrink-0 transition shadow-sm"
+                  >
+                    Autofill
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/login')}
+                    className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-[11px] font-bold shrink-0 transition"
+                  >
+                    All Roles
+                  </button>
+                </div>
               </div>
 
               {loginError && (

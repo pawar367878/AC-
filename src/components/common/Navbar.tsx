@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
+import { useRouter } from '../../context/RouterContext.tsx';
 import {
   Wind,
   Bell,
@@ -22,6 +23,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onRefreshData, onOpenAuthModal }) => {
   const { user, role, logout, switchUserByEmail, notifications, markNotificationAsRead } = useAuth();
+  const { navigate } = useRouter();
   const [showDemoMenu, setShowDemoMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -219,6 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onRefreshData, onOpenAuthModal }
                       onClick={() => {
                         setShowDemoMenu(false);
                         logout();
+                        navigate('/login');
                       }}
                       className="w-full text-left px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2 font-medium"
                     >

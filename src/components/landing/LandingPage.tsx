@@ -187,26 +187,31 @@ export const LandingPage: React.FC = () => {
           {/* CTA Buttons in Navbar */}
           <div className="hidden sm:flex items-center gap-2.5">
             <button
-              onClick={handleCustomerDirectAccess}
-              disabled={isCustomerLoggingIn}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition flex items-center gap-1.5 shadow-xs"
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 transition flex items-center gap-1.5 shadow-sm shadow-sky-600/20"
             >
-              <Users className="w-3.5 h-3.5 text-sky-600" />
-              <span>Customer Login</span>
+              <Users className="w-3.5 h-3.5 text-white" />
+              <span>Demo Login</span>
+            </button>
+            <button
+              onClick={() => navigate('/customer/login')}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition flex items-center gap-1.5"
+            >
+              <span>Customer</span>
             </button>
             <button
               onClick={() => navigate('/technician/login')}
               className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition flex items-center gap-1.5"
             >
               <Wrench className="w-3.5 h-3.5 text-slate-600" />
-              <span>Technician Login</span>
+              <span>Technician</span>
             </button>
             <button
               onClick={() => navigate('/owner/login')}
               className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-slate-800 hover:to-indigo-900 shadow-sm transition flex items-center gap-1.5"
             >
               <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span>Owner / Admin</span>
+              <span>Owner</span>
             </button>
           </div>
 
@@ -232,11 +237,20 @@ export const LandingPage: React.FC = () => {
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  handleCustomerDirectAccess();
+                  navigate('/login');
+                }}
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-teal-600 flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Users className="w-4 h-4 text-white" /> Demo Login (All Roles)
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/customer/login');
                 }}
                 className="w-full py-2.5 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 border border-sky-200 flex items-center justify-center gap-2"
               >
-                <Users className="w-4 h-4 text-sky-600" /> Customer Login
+                Customer Login
               </button>
               <button
                 onClick={() => {
@@ -286,12 +300,11 @@ export const LandingPage: React.FC = () => {
               {/* CTAs */}
               <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4">
                 <button
-                  onClick={handleCustomerDirectAccess}
-                  disabled={isCustomerLoggingIn}
+                  onClick={() => navigate('/login')}
                   className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-sky-600 to-teal-500 hover:from-sky-500 hover:to-teal-400 text-white font-bold text-xs shadow-lg shadow-sky-500/25 flex items-center gap-2.5 transition transform hover:-translate-y-0.5"
                 >
                   <Users className="w-4 h-4" />
-                  <span>{isCustomerLoggingIn ? 'Opening Dashboard...' : 'Customer Login'}</span>
+                  <span>Role Demo Login (All 3 Roles)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 

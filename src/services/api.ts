@@ -37,6 +37,17 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 export const api = {
   // Auth
   getDemoUsers: () => request<{ success: boolean; users: User[] }>('/auth/demo-users'),
+  restoreSession: (token?: string, userId?: string) =>
+    request<{
+      success: boolean;
+      user: User;
+      customer: Customer | null;
+      technician: ServiceProvider | null;
+      token: string;
+    }>('/auth/session', {
+      method: 'POST',
+      body: JSON.stringify({ token, userId }),
+    }),
   login: (identifier: string, password?: string) =>
     request<{
       success: boolean;
